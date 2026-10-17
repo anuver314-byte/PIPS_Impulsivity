@@ -1,0 +1,51 @@
+
+---
+title: "Impact of Emotion on Impulsivity in Inhibition Tasks"
+author: "PiPS Group: A. Verma, K. Huang, S. Radeva"
+output: html_document
+---
+
+# Project overview
+
+This project uses behavioural data from the SSRA and Human
+Behaviour Study, available through Zenodo.
+
+The project explores a research question developed by the group
+using appropriate statistical analyses and visualisations.
+
+# Research question
+
+<!-- Add the group's final research question here. -->
+
+# Data
+
+<!-- Describe the dataset, its source, and the variables used. -->
+The dataset and associated scripts are available at:
+https://doi.org/10.5281/zenodo.12599247
+
+# Analysis
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r}
+# Add data loading and validation here.
+# Add the group's statistical analyses and plots below.
+```
+
+# Results
+
+<!-- Interpret the statistical results and figures here. -->
+
+# Discussion
+
+<!-- Explain the findings, limitations, and implications here. -->
+
+# Reproducibility
+
+See README.md for installation and instructions for running this project.
