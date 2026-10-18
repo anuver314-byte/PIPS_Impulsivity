@@ -15,7 +15,9 @@ using appropriate statistical analyses and visualisations.
 
 # Research question
 
-<!-- Add the group's final research question here. -->
+What is the effect of emotional valence on impulsivity at different levels of trait anxiety?
+
+The project investigates whether the emotional valence of stimuli is associated with impulsivity during inhibition tasks, and whether this relationship varies according to individual differences in trait anxiety.
 
 # Data
 
@@ -23,7 +25,7 @@ using appropriate statistical analyses and visualisations.
 The dataset and associated scripts are available at:
 https://doi.org/10.5281/zenodo.12599247
 
-# Analysis
+# Methods
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
