@@ -28,6 +28,34 @@ This document tracks the development status of the PsychoPy scripts used in our 
 
 The final statistical analysis and interpretation depend on confirmation of the experimental design, relevant dataset variables, and the statistical plan.
 
+
+## Existing Work on Teammate's Branch
+
+Branch: working_branch_Knox
+
+Location: Pips final project/
+
+# Experiment
+
+Five PsychoPy scripts, including the current candidate for the Go/No-Go experiment.
+
+A data/ subfolder containing Go_NoGo_task_data_20261018_104456.csv.
+
+The final script and CSV output require validation before integration into the shared project.
+
+# Research literature
+
+Two PDF papers relevant to the research topic.
+
+Their bibliographic details and relevance to the research question need to be documented.
+
+# Integration status
+
+Existing work has been located but has not yet been integrated into the shared project structure.
+
+Confirm the final experimental script, data provenance, and appropriate file locations before merging.
+
+
 ## Update Log
 
 - Initial status document created to organise script development and outstanding validation tasks.
