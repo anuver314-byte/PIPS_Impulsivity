@@ -6,7 +6,6 @@ library(dplyr)
 
 #Get all necessary data
 
-
 GoNo <- read.csv(here(
   "data simulation and statistics",
   "previous_data",
@@ -26,9 +25,28 @@ anxiety <- read_excel(
 anxiety <- anxiety %>%
   rename(Participant.ID = `Participant ID`)
 
-MasterGoNo <- GoNo %>%
-  left_join(anxiety %>%
-              select(Participant.I STAI.total))
-by = "Participant.ID"
 
-   
+GoNo <- GoNo %>%
+  left_join(anxiety %>%
+              select(Participant.ID, STAI.total), by = "Participant.ID") %>%
+  select(
+    Participant.ID,
+    PRE.POST,
+    RealorPractice,
+    HotorColdTrial,
+    Express,
+    GoRTmean,
+    GoRTsd,
+    RT_hits_corr,
+    AccuratePress,
+    AccurateNoPress,
+    InaccuratePress,
+    InaccurateNoPress,
+    Allocation,
+    STAI.total
+  ) %>%
+  filter(Allocation == "PLACEBO") 
+
+rm(anxiety)
+
+
