@@ -23,6 +23,8 @@ bi_model <- readRDS(
 )
 
 #2.Example simulation of one dataset to show logic 
+
+#creating a function which simulates vriables needed for a Go-NoGo analysis like ours
 simulate_gonogo <- function(n_participants, model, data) {
   
   #Sample trait anxiety scores from existing participants
@@ -58,7 +60,7 @@ simulate_gonogo <- function(n_participants, model, data) {
   
   #Sample number of No-Go trials
   sim_data$n_trials <- sample(
-    data$n_trials,
+    data$InaccuratePress + data$AccurateNoPress,
     size = nrow(sim_data),
     replace = TRUE
   )
@@ -142,10 +144,15 @@ anova(
 
 #3.Power estimation
 
-#3.1 Making a power est. function (with a progress bar!)
+#3.1 Making a function which estimates power
+
 
 estimate_power <- function(
     n_participants,
+    model,
+    data,
+    simulate_fun,
+    interaction,
     nsim = 100,
     alpha = 0.05,
     pb = NULL,
@@ -154,33 +161,44 @@ estimate_power <- function(
   
   p_values <- rep(NA_real_, nsim)
   
+  # Extract the original model formula
+  full_formula <- formula(model)
+  
+  # Remove the specified interaction
+  reduced_formula <- update(
+    full_formula,
+    paste(". ~ . -", interaction)
+  )
+  
   for (i in seq_len(nsim)) {
-    
-    sim_data <- simulate_gonogo(
-      n_participants = n_participants,
-      model = bi_model,
-      data = GoNo
-    )
     
     p_values[i] <- tryCatch({
       
-      full_model <- glmer(
-        cbind(InaccuratePress, AccurateNoPress) ~
-          Express * STAI_c +
-          (1 | Participant.ID),
+      # Generate simulated dataset
+      sim_data <- simulate_fun(
+        n_participants = n_participants,
+        model = model,
+        data = data
+      )
+      
+      # Fit full model
+      full_model <- lme4::glmer(
+        formula = full_formula,
         data = sim_data,
         family = binomial,
-        control = glmerControl(
+        control = lme4::glmerControl(
           optimizer = "bobyqa",
           optCtrl = list(maxfun = 100000)
         )
       )
       
+      # Fit model without interaction
       reduced_model <- update(
         full_model,
-        . ~ . - Express:STAI_c
+        formula = reduced_formula
       )
       
+      # Likelihood-ratio test
       comparison <- anova(
         reduced_model,
         full_model,
@@ -191,7 +209,7 @@ estimate_power <- function(
       
     }, error = function(e) NA_real_)
     
-    #Update shared progress bar
+    # Update progress bar
     if (!is.null(pb) && !is.null(progress)) {
       progress$count <- progress$count + 1
       setTxtProgressBar(pb, progress$count)
@@ -213,99 +231,96 @@ estimate_power <- function(
 }
 
 
-#3.2 Power estimation 
-#I did this a few times to determine what sample size could achieve power .80
-#Since the code is essentially the same each time I've retained the final calculations
+#Finally, a function which runs the whole power analysis a once
 
-
-#Go make some tea, this will take a while
-set.seed(999)
-
-sample_sizes_final <- seq(1200, 1400, by = 50)
-nsim <- 200
-
-#Set up progress bar
-progress <- new.env(parent = emptyenv())
-progress$count <- 0
-
-pb <- txtProgressBar(
-  min = 0,
-  max = length(sample_sizes_final) * nsim,
-  style = 3
-)
-
-start_time <- Sys.time()
-
-power_final <- tryCatch({
+run_power_analysis <- function(
+    model,
+    data,
+    simulate_fun,
+    interaction,
+    sample_sizes,
+    results_dir,
+    nsim = 100,
+    alpha = 0.05,
+    seed = 123,
+    filename = "power_results.csv"
+) {
   
-  do.call(
-    rbind,
-    lapply(sample_sizes_final, function(n) {
-      
-      estimate_power(
-        n_participants = n,
-        nsim = nsim,
-        pb = pb,
-        progress = progress
-      )
-    })
+  set.seed(seed)
+  
+  # Set up progress bar
+  progress <- new.env(parent = emptyenv())
+  progress$count <- 0
+  
+  pb <- txtProgressBar(
+    min = 0,
+    max = length(sample_sizes) * nsim,
+    style = 3
   )
   
-}, finally = close(pb))
+  start_time <- Sys.time()
+  
+  # Run power simulations
+  power_results <- tryCatch({
+    
+    do.call(
+      rbind,
+      lapply(sample_sizes, function(n) {
+        
+        estimate_power(
+          n_participants = n,
+          model = model,
+          data = data,
+          simulate_fun = simulate_fun,
+          interaction = interaction,
+          nsim = nsim,
+          alpha = alpha,
+          pb = pb,
+          progress = progress
+        )
+      })
+    )
+    
+  }, finally = close(pb))
+  
+  # Display runtime
+  runtime <- as.numeric(
+    difftime(Sys.time(), start_time, units = "mins")
+  )
+  
+  cat(
+    "\nTotal runtime:",
+    round(runtime, 2),
+    "minutes\n"
+  )
+  
+  # Display results
+  print(power_results)
+  
+  # Save results
+  write.csv(
+    power_results,
+    file.path(results_dir, filename),
+    row.names = FALSE
+  )
+  
+  return(invisible(power_results))
+}
 
-#Display runtime
-cat(
-  "\nRuntime:",
-  round(
-    as.numeric(difftime(Sys.time(), start_time, units = "mins")),
-    2
-  ),
-  "minutes\n"
+#3.2 Using the function with our data
+
+power_final <- run_power_analysis(
+  model = bi_model,
+  data = GoNo,
+  simulate_fun = simulate_gonogo,
+  interaction = "Express:STAI_c",
+  sample_sizes = seq(1200, 1400, by = 50),
+  results_dir = results_dir,
+  nsim = 200,
+  seed = 999,
+  filename = "power_final.csv"
 )
 
-print(power_final)
-
-#Save results
-write.csv(
-  power_final,
-  file.path(results_dir, "power_final.csv"),
-  row.names = FALSE
-)
-
-
-#Plotting a power curve
-
-p_final <- ggplot(
-  power_final,
-  aes(x = N, y = Power)
-) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  geom_hline(
-    yintercept = 0.80,
-    linetype = "dashed"
-  ) +
-  scale_y_continuous(
-    limits = c(0, 1),
-    labels = scales::label_percent()
-  ) +
-  labs(
-    title = "Final simulation-based power analysis",
-    subtitle = "Emotional valence × trait anxiety interaction",
-    x = "Number of participants",
-    y = "Estimated statistical power"
-  ) +
-  theme_classic()
-
-print(p_final)
-
-ggsave(
-  file.path(results_dir, "power_curve_final.png"),
-  plot = p_final,
-  width = 9,
-  height = 6,
-  dpi = 300
-)
 
 #Determining required sample size
 
