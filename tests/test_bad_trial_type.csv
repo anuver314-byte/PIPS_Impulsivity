@@ -1,7 +1,7 @@
 trial_number,trial_type,error,response_time_ms
 1,No-Go,1,1260.13
 2,Go,0,930.31
-3,No-Go,0,2000.00
+3,Maybe,0,2000.00
 4,Go,0,814.38
 5,Go,0,596.21
 6,Go,0,879.17
