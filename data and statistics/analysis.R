@@ -4,6 +4,7 @@ library(dplyr)
 library(ggplot2)
 library(lme4)
 library(DHARMa)
+library(glmmTMB)
 
 #this is where analysis results will be saved
 
@@ -553,10 +554,76 @@ plot_interaction(
   results_dir
 )
 
+#3.Sensitivity analysis (optional, results are not saved automatically)
+#The original binomial GLMM showed significant overdispersion
+#and excess outliers. 
+
+
+#Alternative model allowing for overdispersion
+
+set.seed(999)
+
+bb_model <- glmmTMB(
+  cbind(InaccuratePress, AccurateNoPress) ~
+    Express * STAI_c +
+    (1 | Participant.ID),
+  data = GoNo,
+  family = betabinomial(link = "logit")
+)
+
+
+#Diagnostics for beta-binomial model
+
+bb_res <- DHARMa::simulateResiduals(
+  fittedModel = bb_model,
+  n = 1000
+)
+
+plot(bb_res)
+
+DHARMa::testDispersion(bb_res)
+DHARMa::testOutliers(bb_res)
+DHARMa::testUniformity(bb_res)
+DHARMa::testZeroInflation(bb_res)
+
+
+#compare the two models
+
+AIC(bi_model, bb_model)
+
+#Check interaction
+bb_model_reduced <- update(
+  bb_model,
+  . ~ . - Express:STAI_c
+)
+
+anova(bb_model_reduced, bb_model)
+
+
+#A beta-binomial GLMM improved model fit and no longer showed excess outliers.
+#Some overdispersion remained 
+#The Express x STAI_c interaction remained non-significant
+#Therefore, the substantive conclusion was unchanged and the original model was
+#retained
+
 #Saving the model for the power analysis
 
 saveRDS(
   bi_model,
   file = here::here("data and statistics", "results", "bi_model.rds")
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -8,8 +8,16 @@ set.seed(999)
 #Where all the results go
 results_dir <- here("data and statistics", "results")
 
-#We are going to use monte carlo simulations to conduct power analysis based on the preliminary analyses we conducted
-#A single-simulation example is included
+#We are going to use monte carlo simulations to conduct power analysis based on 
+#the preliminary analyses we conducted
+#The power analysis uses the original binomial GLMM as its
+#data-generating model. Although preliminary diagnostics indicated
+#overdispersion, the binomial specification was retained to estimate
+#power under a clearly defined modelling assumption.
+#The simulations do not account for the additional dispersion
+#observed in the preliminary data. Power estimates may therefore
+#be optimistic and should not be interpreted as definitive
+#sample-size requirements.
 
 
 #1. Loading analysis data and model
@@ -221,23 +229,44 @@ estimate_power <- function(
   }
   
   # Identify successful simulations
-  valid <- !is.na(p_values)
+  # Successful simulation = one that produces a valid p-value (between 0 and 1)
+  # Failed simulations return NA (not incl. in power estimate)
+
+  valid <- is.finite(p_values) & p_values >= 0 & p_values <= 1
   
-  # Calculate power
+  # Power = simulations (p < alpha) / total n simulations
+  # Having few successful simulations can make this estimate unreliable
+  
+  n_success <- sum(valid)
+  success_rate <- n_success / nsim
+  
+  # Require at least 90% of simulations to succeed.
+  min_success_rate <- 0.90
+  
+  if (success_rate < min_success_rate) {
+    warning(
+      "Only ", n_success, " out of ", nsim,
+      " simulations succeeded (",
+      round(success_rate * 100, 1),
+      "%). Power will be reported as NA."
+    )
+  }
+
+  # Calculate power given the min success rate
   data.frame(
     N = n_participants,
-    Power = if (any(valid)) {
+    Power = if (n_success > 0 && success_rate >= min_success_rate) {
       mean(p_values[valid] < alpha)
     } else {
       NA_real_
     },
-    Successful = sum(valid),
-    Failed = sum(!valid)
-  )
+    Successful = n_success,
+    Failed = nsim - n_success,
+    Success_rate = round(success_rate, 3)
+)
 }
-
-
-#This function can be used to try out different sample sizes and figure out with which one you will approximately reach th desired power
+#This function can be used to try out different sample sizes and figure out 
+#with which one you will approximately reach th desired power
 #Example
 
 power_100 <- estimate_power(
@@ -344,7 +373,7 @@ power_final <- run_power_analysis(
 )
 
 
-#Determining required sample size
+#Determining required sample size (if it is reached in Power_final)
 
 required_N <- min(
   power_final$N[power_final$Power >= 0.80],
