@@ -55,7 +55,7 @@ To evaluate the interaction, the full model is compared with a reduced model tha
 
 The statistical analysis script is `data and statistics/analysis.R`. It is intended to produce model summaries, diagnostic outputs, and visualisations.
 
-The appropriateness of the final model and the implications of any diagnostic concerns must be established before drawing conclusions from the interaction test.
+Model diagnostics indicated significant overdispersion and excess outliers. A sensitivity analysis using a beta-binomial GLMM showed improved overall fit, although some overdispersion remained. The substantive conclusion was unchanged: the interaction between emotional condition and trait anxiety was not statistically significant. The original binomial GLMM was retained as the primary model and as the basis for the power analysis. These diagnostic concerns should nevertheless be considered when interpreting the results.
 
 # 4. Results and visualisation
 
@@ -87,6 +87,8 @@ Estimated power is the proportion of successful simulations in which the interac
 The simulation script is `data and statistics/simulation_power_analysis.R`.
 
 An initial run encountered a problem because the compared models did not use the same number of observations. A subsequent small diagnostic run completed successfully, but three simulations are insufficient to provide a reliable power estimate.
+
+The simulation uses parameters estimated from the original binomial GLMM and does not incorporate the additional dispersion observed in the preliminary data. Consequently, the estimated power is conditional on the binomial model assumptions and may be optimistic if similar extra-binomial variability is present in future data. Power estimates should not be interpreted as definitive sample-size requirements.
 
 The full simulation must be run and its failures, convergence behaviour, and results reviewed before reporting a final power estimate or recommending a sample size.
 
