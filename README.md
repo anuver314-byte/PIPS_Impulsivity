@@ -54,7 +54,7 @@ The statistical scripts currently reside on a teammate's branch and have not yet
 
 ### 3. Statistical analysis
 
-The statistical workflow includes `data and statistics/analysis.R`, which fits a binomial generalized linear mixed-effects model (GLMM) to examine commission-error counts across emotional-valence conditions and levels of trait anxiety.
+The statistical workflow includes `data and statistics/analysis.R`, which fits a binomial generalised linear mixed-effects model (GLMM) to examine commission-error counts across emotional-valence conditions and levels of trait anxiety.
 
 The planned model includes:
 
@@ -65,7 +65,13 @@ The planned model includes:
 
 The interaction is evaluated by comparing the full model with a reduced model that excludes the interaction, using a likelihood-ratio test.
 
-The analysis also includes model diagnostics, plots, and statistical summaries. The workflow expects a fitted model to be saved at:
+The analysis also includes model diagnostics, plots, and statistical summaries.
+
+Model diagnostics indicated significant overdispersion and excess outliers. A sensitivity analysis using a beta-binomial GLMM showed improved overall fit, although some overdispersion remained. The substantive conclusion was unchanged: the interaction between emotional condition and trait anxiety was not statistically significant. The original binomial GLMM was retained as the primary model and as the basis for the simulation-based power analysis.
+
+The power analysis uses parameters estimated from the original binomial GLMM and assumes binomial variability. Because the simulations do not incorporate the additional dispersion observed in the preliminary data, their power estimates may be optimistic if similar extra-binomial variability is present in future data. These limitations should be considered when interpreting the results.
+
+The workflow expects a fitted model to be saved at:
 
 `data and statistics/results/bi_model.rds`
 
@@ -77,7 +83,9 @@ The statistical workflow includes `data and statistics/simulation_power_analysis
 
 The simulation depends on the analysis data and model-fitting procedure. Its inputs, execution, and outputs must be checked against the final analysis workflow before the results can be interpreted.
 
-Small diagnostic runs are useful for checking whether the simulation code executes, but they are not substitutes for a sufficiently large simulation and do not establish a final power estimate.
+The simulation uses parameters estimated from the original binomial GLMM and does not incorporate the additional dispersion observed in the preliminary data. Consequently, estimated power is conditional on the binomial model assumptions and may be optimistic if future data exhibit similar extra-binomial variability. Power estimates should not be interpreted as definitive sample-size requirements.
+
+Small diagnostic runs are useful for checking whether the simulation code executes, but they are not substitutes for a sufficiently large simulation and do not establish a final power estimate. The number of successful and failed simulations, convergence behaviour, and final results must be reviewed before recommending a sample size.
 
 ### 5. Main report
 
@@ -215,7 +223,8 @@ The report's execution order and dependencies must be verified against the final
 - **Statistical input-data validation:** The recorded test run completed 19 checks with zero failures.
 - **Go/No-Go validation:** The checker detected deliberately corrupted trial numbering. Testing of the revised script against valid and corrupted files is being completed.
 - **Statistical workflow:** Data preparation, analysis, and simulation scripts remain on a teammate's branch and require integration and compatibility checks.
-- **Power analysis:** Diagnostic runs have been performed, but the full simulation and its interpretation remain under validation.
+- **Model diagnostics:** The beta-binomial sensitivity analysis showed improved overall fit and did not change the substantive conclusion, although some overdispersion remained.
+- **Power analysis:** Diagnostic runs have been performed, but the full simulation and its interpretation remain under validation. The estimates must be interpreted in light of the binomial simulation assumptions and the overdispersion observed in the preliminary data.
 - **Main report:** The complete workflow still needs to be tested from a clean R session.
 
 The project status and execution instructions should be updated as integration and testing progress.
