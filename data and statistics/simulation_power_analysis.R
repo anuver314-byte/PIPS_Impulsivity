@@ -119,32 +119,12 @@ sim_data <- simulate_gonogo(
   data = GoNo
 )
 
-#Fitting model
-sim_model <- glmer(
-  cbind(InaccuratePress, AccurateNoPress) ~
-    Express * STAI_c +
-    (1 | Participant.ID),
-  data = sim_data,
-  family = binomial
-)
-
-#Fittng model without the interaction
-sim_model_reduced <- update(
-  sim_model,
-  . ~ . - Express:STAI_c
-)
-
-#Comparing
-anova(
-  sim_model_reduced,
-  sim_model,
-  test = "Chisq"
-)
-
+rm(sim_data)
 
 #3.Power estimation
 
 #3.1 Making a function which estimates power
+
 
 
 estimate_power <- function(
@@ -161,10 +141,26 @@ estimate_power <- function(
   
   p_values <- rep(NA_real_, nsim)
   
-  # Extract the original model formula
+  # Create progress bar if none was provided
+  if (is.null(pb)) {
+    
+    pb <- txtProgressBar(
+      min = 0,
+      max = nsim,
+      style = 3
+    )
+    
+    progress <- new.env(parent = emptyenv())
+    progress$count <- 0
+    
+    # Close progress bar when function finishes
+    on.exit(close(pb), add = TRUE)
+  }
+  
+  # Extract original model formula
   full_formula <- formula(model)
   
-  # Remove the specified interaction
+  # Remove specified interaction
   reduced_formula <- update(
     full_formula,
     paste(". ~ . -", interaction)
@@ -192,10 +188,15 @@ estimate_power <- function(
         )
       )
       
-      # Fit model without interaction
-      reduced_model <- update(
-        full_model,
-        formula = reduced_formula
+      # Fit reduced model without interaction
+      reduced_model <- lme4::glmer(
+        formula = reduced_formula,
+        data = sim_data,
+        family = binomial,
+        control = lme4::glmerControl(
+          optimizer = "bobyqa",
+          optCtrl = list(maxfun = 100000)
+        )
       )
       
       # Likelihood-ratio test
@@ -207,17 +208,22 @@ estimate_power <- function(
       
       comparison$`Pr(>Chisq)`[2]
       
-    }, error = function(e) NA_real_)
+    }, error = function(e) {
+      message("Simulation ", i, " failed: ", conditionMessage(e))
+      NA_real_
+    })
     
-    # Update progress bar
+    # Update progress bar after each simulation
     if (!is.null(pb) && !is.null(progress)) {
       progress$count <- progress$count + 1
       setTxtProgressBar(pb, progress$count)
     }
   }
   
+  # Identify successful simulations
   valid <- !is.na(p_values)
   
+  # Calculate power
   data.frame(
     N = n_participants,
     Power = if (any(valid)) {
@@ -231,7 +237,23 @@ estimate_power <- function(
 }
 
 
-#Finally, a function which runs the whole power analysis a once
+#This function can be used to try out different sample sizes and figure out with which one you will approximately reach th desired power
+#Example
+
+power_100 <- estimate_power(
+  n_participants = 100,
+  model = bi_model,
+  data = GoNo,
+  simulate_fun = simulate_gonogo,
+  interaction = "Express:STAI_c",
+  nsim = 100
+)
+print(power_100)
+
+
+rm(power_100)
+
+#Finally, a function which runs the whole power analysis at once
 
 run_power_analysis <- function(
     model,

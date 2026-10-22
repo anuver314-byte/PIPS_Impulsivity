@@ -69,6 +69,22 @@ GoNo <- GoNo %>%
 GoNo <- GoNo %>%
   mutate(Express = factor(Express, levels = c("Neutral", "Happy", "Fear")))
 
+#Selectting the time point we are working with
+
+GoNo <- GoNo %>%
+  filter(PRE.POST == "Post")
+
+#Creating the outcome variable commission_error to use with assumption checks
+
+GoNo <- GoNo %>%
+  mutate(commission_error = InaccuratePress /
+           (InaccuratePress + AccurateNoPress))
+
+#Centering anxiety for easier interpretation of results
+
+GoNo <- GoNo %>%
+  mutate(STAI_c = STAI.total - mean(STAI.total, na.rm = TRUE))
+
 #saving data
 
 saveRDS(

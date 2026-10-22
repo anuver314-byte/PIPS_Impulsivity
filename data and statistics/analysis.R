@@ -17,22 +17,6 @@ GoNo <- readRDS(
 
 #2. Analysis
 
-#Selectting the time point we are working with
-
-GoNo <- GoNo %>%
-  filter(PRE.POST == "Post")
-
-#Creating the outcome variable commission_error to use with assumption checks
-
-GoNo <- GoNo %>%
-  mutate(commission_error = InaccuratePress /
-           (InaccuratePress + AccurateNoPress))
-
-#Centering anxiety for easier interpretation of results
-
-GoNo <- GoNo %>%
-  mutate(STAI_c = STAI.total - mean(STAI.total, na.rm = TRUE))
-
 #2.1 functions for data and assumption checks and model interpretation (binomial generalised mixed effects model)
 
 #Defining a function that checks for missing values, variable types, repeated observations and the dependent variable
