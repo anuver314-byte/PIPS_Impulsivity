@@ -38,6 +38,9 @@ from datetime import datetime       # get the current date and time
 from pathlib import Path            # build file paths & create the data output folder
 
 # PsychoPy is an open-source package for running experiments in Python
+# ***as of 22/10/2026, the PsychoPy (version: 2026.2.4) package does not support Python 13 or later versions.
+# This script was written based on a virtual environment with Python 3.11.9.
+
 from psychopy import visual, event, core, gui
 # the visual module creates the user interface and everything displayed inside it
 # the event module controls mouse visibility
@@ -64,9 +67,9 @@ default_practice_feedback = 0.7
 default_word_height = 0.10
 default_face_duration = 0.300
 default_face_folder = Path(__file__).resolve().parent / "Images"
-default_interference_timeout = 0.400
-default_interference_duration = 0.300
-default_interference_fixation = 0.500
+default_interference_timeout = 0.800
+default_interference_duration = 0.600
+default_interference_fixation = 0.600
 
 default_practice_go = 3
 default_practice_nogo = 3
@@ -179,6 +182,9 @@ def build_response_groups(word_groups, mode):
             })
     return groups
 
+# currently the combined positive and negative categories contain more unique words than the neutral category, 
+# which may be a limitation to be addressed later.
+
 def groups_validation(groups, go_group, nogo_group):
     if go_group == nogo_group:
         raise ValueError("Please choose different Go and No-Go groups.")
@@ -213,8 +219,11 @@ def groups_validation(groups, go_group, nogo_group):
                "Selected Go and No-Go groups must not share items."
                )
 
+# collect and validate trial counts, then configure the selected task version
 def researcher_settings():
 
+    # Keep labels and default values in matching order so each field
+    # receives the correct starting value.
     count_labels = [
         "Practice Go trials", "Practice No-Go trials",
         "Official Go trials", "Official No-Go trials"
@@ -222,14 +231,15 @@ def researcher_settings():
     count_values = [str(default_practice_go), str(default_practice_nogo),
                     str(default_official_go), str(default_official_nogo)]
 
+# Start with the basic version selected.
     selected_version = version_basic
 
-# Repeat setup after invalid counts; accept only positive integers.
-# Successful validation exits this loop with break.
-# Cancel exits the entire function with return None.
+# # Reopen the dialog until the researcher enters valid trial counts
+    # or cancels. The latest entries are preserved between attempts.
     while True:
         researcher_dialog = gui.Dlg(title = "Researcher Settings")     # gui.Dlg() creates a dialog box
 
+        # Add a dropdown containing the available task versions.
         researcher_dialog.addField(                                    # .addField() produces input fields in the dialog box for user input
             "Task version", initial = selected_version,
             choices = [version_basic,
@@ -240,24 +250,34 @@ def researcher_settings():
             ]
         )
 
+        # zip() pairs each field label with its corresponding current value.
         for label, value in zip(count_labels, count_values):
             researcher_dialog.addField(label, initial = value)
 
+        # Display the dialog and wait for confirmation or cancellation.
         answers = researcher_dialog.show()                             # .show() displays the dialog box for the researchers
 
+        # Cancel exits the entire function, rather than just the loop.
         if not researcher_dialog.OK:                                   # dialog.OK returns False if the researcher cancels
             return None                                                # in which case it returns None so that the task does not start
 
+        # Save the selected version and trial-count entries so they can
+        # be shown again if validation fails.
         selected_version = answers["Task version"]
         count_values = []
+
         for label in count_labels:
+            # Convert to text and remove leading/trailing whitespace.
             count_values.append(
                 str(answers[label]).strip()
                 )
 
         # 'try:' here means "execute this code; if an error occurs, let the 'except:' block handle it"
         try:
+            
             counts = []                                                 
+            # Store validated counts as integers, in the same order
+            # as count_labels.
 
             # the following for-loops check whether researchers input (excluding the task version) consists of positive integers
             
@@ -268,9 +288,14 @@ def researcher_settings():
                 counts.append(number)
 
         except ValueError:
+            # Handle either a conversion failure or a non-positive count.
             settings_error("Please enter positive integers in all four trial-count fields.")
+
+            # Skip the remaining loop body and reopen the settings dialog.
             continue
 
+        # Only create the settings dictionary after all four counts pass
+        # validation. Their positions correspond to count_labels.
         settings = {
             "task_version": selected_version,
             "practice_go": counts[0],
@@ -455,6 +480,7 @@ def face_image_files(folder, expression):
 
 def settings_emotional_face(settings):
 
+    # Default entries; updated values are preserved if validation fails.
     folder_text = str(default_face_folder)
     go_expression = "Happy"
     nogo_expression = "Fearful"
