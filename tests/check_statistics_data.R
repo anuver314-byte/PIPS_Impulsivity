@@ -12,16 +12,26 @@ questionnaire_file <- here::here(
   "PREPOST_questionnaires_combined.xlsx"
 )
 
+# STAI validation threshold.
+# Confirm this threshold with the statistics partner before finalising.
+min_stai_proportion <- 0.80
+
 # Store the result of each check so that a final report can be printed.
 check_results <- data.frame(
   Check = character(),
   Status = character(),
   Details = character(),
+  Critical = logical(),
   stringsAsFactors = FALSE
 )
 
-# Record each check as PASS or FAIL and print its result.
-record_check <- function(name, passed, details = "") {
+# Track failed critical checks so the script can stop before analysis.
+critical_failures <- character()
+
+# Record each check as PASS or FAIL.
+# Critical checks stop the workflow if they fail.
+record_check <- function(name, passed, details = "",
+                         critical = TRUE) {
   status <- if (isTRUE(passed)) "PASS" else "FAIL"
 
   check_results <<- rbind(
@@ -30,11 +40,42 @@ record_check <- function(name, passed, details = "") {
       Check = name,
       Status = status,
       Details = details,
+      Critical = critical,
       stringsAsFactors = FALSE
     )
   )
 
+  if (status == "FAIL" && critical) {
+    critical_failures <<- c(critical_failures, name)
+  }
+
   cat(status, "-", name, "-", details, "\n")
+}
+
+# Print the report and stop if any critical check failed.
+finish_checks <- function() {
+  cat("\n========== FINAL CHECK REPORT ==========\n")
+  print(check_results, row.names = FALSE)
+
+  cat(
+    "\nPassed:", sum(check_results$Status == "PASS"),
+    "\nFailed:", sum(check_results$Status == "FAIL"),
+    "\nTotal:", nrow(check_results), "\n"
+  )
+
+  if (length(critical_failures) > 0) {
+    cat("\nCRITICAL VALIDATION FAILURE(S):\n")
+    cat(paste0("- ", unique(critical_failures)), sep = "\n")
+    cat("\n\nAnalysis must not proceed with these inputs.\n")
+
+    stop(
+      "Input validation failed. Correct the critical failures ",
+      "before running the statistical analysis.",
+      call. = FALSE
+    )
+  }
+
+  cat("\nAll critical checks passed. Input validation is complete.\n")
 }
 
 cat("Project root:", here::here(), "\n\n")
@@ -57,22 +98,26 @@ record_check(
 
 # Stop if either input file is missing.
 if (!gonogo_exists || !questionnaire_exists) {
-  print(check_results)
-  stop(
-    "Input file(s) missing. Check the project root and file paths."
-  )
+  finish_checks()
 }
 
 # Check that the package needed to read Excel files is installed.
 if (!requireNamespace("readxl", quietly = TRUE)) {
-  stop("Package 'readxl' is missing. Run install.packages('readxl').")
+  stop(
+    "Package 'readxl' is missing. Run install.packages('readxl').",
+    call. = FALSE
+  )
 }
 
 # Read both input files and record any errors that occur.
 gonogo <- tryCatch(
   read.csv(gonogo_file, stringsAsFactors = FALSE),
   error = function(e) {
-    record_check("Go/No-Go CSV can be read", FALSE, conditionMessage(e))
+    record_check(
+      "Go/No-Go CSV can be read",
+      FALSE,
+      conditionMessage(e)
+    )
     NULL
   }
 )
@@ -94,8 +139,7 @@ questionnaires <- tryCatch(
 
 # Stop if either file could not be read successfully.
 if (is.null(gonogo) || is.null(questionnaires)) {
-  print(check_results)
-  stop("Could not read one or both input files.")
+  finish_checks()
 }
 
 record_check(
@@ -149,8 +193,7 @@ record_check(
 # Stop before further checks if a required column is unavailable.
 if (length(missing_gonogo) > 0 ||
     length(missing_questionnaire) > 0) {
-  print(check_results)
-  stop("Required columns are missing; check the source files.")
+  finish_checks()
 }
 
 # Check that participant IDs are present and not blank.
@@ -197,7 +240,6 @@ record_check(
 )
 
 # Create unique participant/time-point combinations in each file.
-# These keys help identify records that can be matched across files.
 gonogo_keys <- unique(data.frame(
   id = trimws(as.character(gonogo$Participant.ID)),
   time = gonogo_time,
@@ -212,24 +254,26 @@ questionnaire_keys <- unique(data.frame(
 
 # Exclude incomplete keys before comparing the two datasets.
 gonogo_keys <- gonogo_keys[
-  !is.na(gonogo_keys$id) & !is.na(gonogo_keys$time),
+  !is.na(gonogo_keys$id) & !is.na(gonogo_keys$time) &
+    nzchar(gonogo_keys$id),
 ]
 
 questionnaire_keys <- questionnaire_keys[
-  !is.na(questionnaire_keys$id) & !is.na(questionnaire_keys$time),
+  !is.na(questionnaire_keys$id) & !is.na(questionnaire_keys$time) &
+    nzchar(questionnaire_keys$id),
 ]
 
-# Combine participant ID and time point into a single comparison key.
+# Combine participant ID and time point into a comparison key.
 gonogo_key <- paste(gonogo_keys$id, gonogo_keys$time, sep = "||")
-
 questionnaire_key <- paste(
   questionnaire_keys$id, questionnaire_keys$time, sep = "||"
 )
 
 matched_keys <- intersect(gonogo_key, questionnaire_key)
 
-# Report matching and unmatched combinations in both datasets.
 # This is an overlap check, not a requirement that every key matches.
+# Keep it non-critical so unmatched keys are reported without
+# automatically stopping the workflow.
 record_check(
   "Participant/time-point keys overlap across files",
   length(matched_keys) > 0,
@@ -239,18 +283,33 @@ record_check(
     "Go/No-Go keys unmatched;",
     length(setdiff(questionnaire_key, gonogo_key)),
     "questionnaire keys unmatched"
-  )
+  ),
+  critical = FALSE
 )
 
-# Check that the questionnaire contains usable numeric anxiety scores.
+# Check that questionnaire anxiety scores are numeric and finite.
 anxiety <- suppressWarnings(
   as.numeric(as.character(questionnaires$STAI.total))
 )
 
+n_stai_expected <- length(anxiety)
+n_stai_valid <- sum(is.finite(anxiety))
+stai_proportion <- if (n_stai_expected > 0) {
+  n_stai_valid / n_stai_expected
+} else {
+  0
+}
+
 record_check(
-  "Questionnaire anxiety scores contain usable numeric values",
-  any(is.finite(anxiety)),
-  paste(sum(is.finite(anxiety)), "usable scores")
+  "Sufficient questionnaire anxiety scores are usable",
+  n_stai_expected > 0 &&
+    stai_proportion >= min_stai_proportion,
+  paste0(
+    n_stai_valid, " of ", n_stai_expected,
+    " questionnaire rows have usable scores (",
+    round(stai_proportion * 100, 1), "%; minimum ",
+    min_stai_proportion * 100, "%)"
+  )
 )
 
 # Check that all expected expression conditions are represented.
@@ -263,8 +322,8 @@ record_check(
   paste("Found:", paste(expression_values, collapse = ", "))
 )
 
-# Verify that the outcome counts used by the binomial model
-# are numeric, finite, non-negative, and whole numbers.
+# Verify that outcome counts are numeric, finite, non-negative,
+# and whole numbers.
 count_names <- c("AccurateNoPress", "InaccuratePress")
 
 counts <- lapply(gonogo[count_names], function(x) {
@@ -307,8 +366,8 @@ if (count_values_valid) {
   )
 }
 
-# Confirm that the dataset contains the allocation group and
-# post-intervention observations required for the planned analysis.
+# Confirm that the dataset contains the required allocation group
+# and post-intervention observations.
 record_check(
   "Placebo allocation is present",
   any(as.character(gonogo$Allocation) == "PLACEBO", na.rm = TRUE),
@@ -321,12 +380,5 @@ record_check(
   "Expected time-point label: Post or POST"
 )
 
-# Print the final report showing the status and details of each check.
-cat("\n========== FINAL CHECK REPORT ==========\n")
-print(check_results, row.names = FALSE)
-
-cat(
-  "\nPassed:", sum(check_results$Status == "PASS"),
-  "\nFailed:", sum(check_results$Status == "FAIL"),
-  "\nTotal:", nrow(check_results), "\n"
-)
+# Print the final report and stop if any critical check failed.
+finish_checks()
