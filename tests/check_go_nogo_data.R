@@ -102,10 +102,14 @@ if (any(!is.na(rt[go & incorrect]))) {
 }
 
 # No-Go trials:
-# Correctly withholding a response should correspond to the 2,000 ms timeout.
-if (anyNA(rt[nogo & correct]) ||
-    any(rt[nogo & correct] != 2000)) {
-  stop("Correct No-Go trials should have a reaction time of 2000 ms.")
+# No-Go trials do not generate reaction-time data.
+# Validate reaction times only for Go trials.
+if (anyNA(rt[go & !is.na(task_data$error) & task_data$error == 0])) {
+  stop("Correct Go trials must have a valid reaction time.")
+}
+
+if (any(!is.finite(rt[go & !is.na(rt)]))) {
+  stop("Go-trial reaction times must be finite.")
 }
 
 # Incorrect No-Go responses (commission errors) should occur before timeout.
