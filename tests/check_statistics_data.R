@@ -2,7 +2,7 @@
 # Error checks for the statistics input data
 # Run from the local copy of TM's working-branch project.
 
-# Locate the two input files in the local project
+# Locate the two input files in the local project.
 gonogo_file <- here::here(
   "data and statistics", "previous_data", "study_data.csv"
 )
@@ -12,7 +12,7 @@ questionnaire_file <- here::here(
   "PREPOST_questionnaires_combined.xlsx"
 )
 
-# Record each check
+# Store the result of each check so that a final report can be printed.
 check_results <- data.frame(
   Check = character(),
   Status = character(),
@@ -20,9 +20,10 @@ check_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
+# Record each check as PASS or FAIL and print its result.
 record_check <- function(name, passed, details = "") {
   status <- if (isTRUE(passed)) "PASS" else "FAIL"
-  
+
   check_results <<- rbind(
     check_results,
     data.frame(
@@ -32,13 +33,13 @@ record_check <- function(name, passed, details = "") {
       stringsAsFactors = FALSE
     )
   )
-  
+
   cat(status, "-", name, "-", details, "\n")
 }
 
 cat("Project root:", here::here(), "\n\n")
 
-# Check whether the files exist locally
+# Check whether both required input files exist.
 gonogo_exists <- file.exists(gonogo_file)
 questionnaire_exists <- file.exists(questionnaire_file)
 
@@ -54,7 +55,7 @@ record_check(
   questionnaire_file
 )
 
-# Stop if either input file is missing
+# Stop if either input file is missing.
 if (!gonogo_exists || !questionnaire_exists) {
   print(check_results)
   stop(
@@ -62,11 +63,12 @@ if (!gonogo_exists || !questionnaire_exists) {
   )
 }
 
-# Read the files
+# Check that the package needed to read Excel files is installed.
 if (!requireNamespace("readxl", quietly = TRUE)) {
   stop("Package 'readxl' is missing. Run install.packages('readxl').")
 }
 
+# Read both input files and record any errors that occur.
 gonogo <- tryCatch(
   read.csv(gonogo_file, stringsAsFactors = FALSE),
   error = function(e) {
@@ -90,6 +92,7 @@ questionnaires <- tryCatch(
   }
 )
 
+# Stop if either file could not be read successfully.
 if (is.null(gonogo) || is.null(questionnaires)) {
   print(check_results)
   stop("Could not read one or both input files.")
@@ -107,7 +110,7 @@ record_check(
   paste(nrow(questionnaires), "rows;", ncol(questionnaires), "columns")
 )
 
-# Check required columns
+# List the columns required for the planned statistical analysis.
 required_gonogo <- c(
   "Participant.ID", "PRE.POST", "Express", "Allocation",
   "AccurateNoPress", "InaccuratePress"
@@ -117,6 +120,7 @@ required_questionnaire <- c(
   "Participant ID", "PRE.POST", "STAI.total"
 )
 
+# Identify any required columns that are missing.
 missing_gonogo <- setdiff(required_gonogo, names(gonogo))
 missing_questionnaire <- setdiff(
   required_questionnaire, names(questionnaires)
@@ -142,14 +146,14 @@ record_check(
   }
 )
 
-# Stop further checks if the columns needed below are absent
+# Stop before further checks if a required column is unavailable.
 if (length(missing_gonogo) > 0 ||
     length(missing_questionnaire) > 0) {
   print(check_results)
   stop("Required columns are missing; check the source files.")
 }
 
-# Check participant IDs and time-point labels
+# Check that participant IDs are present and not blank.
 record_check(
   "Go/No-Go participant IDs are present",
   !anyNA(gonogo$Participant.ID) &&
@@ -164,6 +168,8 @@ record_check(
   "Participant IDs should not be blank"
 )
 
+# Standardise time-point labels so PRE/POST and Baseline/Post
+# can be compared using the same labels.
 normalise_time <- function(x) {
   x <- trimws(as.character(x))
   x[x == "PRE"] <- "Baseline"
@@ -176,21 +182,22 @@ questionnaire_time <- normalise_time(questionnaires$PRE.POST)
 
 valid_times <- c("Baseline", "Post")
 
+# Every row must have a non-missing, recognised time-point label.
 record_check(
   "Go/No-Go time-point labels are recognised",
-  all(na.omit(gonogo_time) %in% valid_times) &&
-    !all(is.na(gonogo_time)),
+  !anyNA(gonogo_time) && all(gonogo_time %in% valid_times),
   paste("Found:", paste(unique(gonogo_time), collapse = ", "))
 )
 
 record_check(
   "Questionnaire time-point labels are recognised",
-  all(na.omit(questionnaire_time) %in% valid_times) &&
-    !all(is.na(questionnaire_time)),
+  !anyNA(questionnaire_time) &&
+    all(questionnaire_time %in% valid_times),
   paste("Found:", paste(unique(questionnaire_time), collapse = ", "))
 )
 
-# Check whether participant/time-point keys can match across files
+# Create unique participant/time-point combinations in each file.
+# These keys help identify records that can be matched across files.
 gonogo_keys <- unique(data.frame(
   id = trimws(as.character(gonogo$Participant.ID)),
   time = gonogo_time,
@@ -203,31 +210,39 @@ questionnaire_keys <- unique(data.frame(
   stringsAsFactors = FALSE
 ))
 
+# Exclude incomplete keys before comparing the two datasets.
 gonogo_keys <- gonogo_keys[
   !is.na(gonogo_keys$id) & !is.na(gonogo_keys$time),
 ]
+
 questionnaire_keys <- questionnaire_keys[
   !is.na(questionnaire_keys$id) & !is.na(questionnaire_keys$time),
 ]
 
+# Combine participant ID and time point into a single comparison key.
 gonogo_key <- paste(gonogo_keys$id, gonogo_keys$time, sep = "||")
+
 questionnaire_key <- paste(
   questionnaire_keys$id, questionnaire_keys$time, sep = "||"
 )
 
 matched_keys <- intersect(gonogo_key, questionnaire_key)
 
+# Report matching and unmatched combinations in both datasets.
+# This is an overlap check, not a requirement that every key matches.
 record_check(
   "Participant/time-point keys overlap across files",
   length(matched_keys) > 0,
   paste(
     length(matched_keys), "matching keys;",
     length(setdiff(gonogo_key, questionnaire_key)),
-    "Go/No-Go keys unmatched"
+    "Go/No-Go keys unmatched;",
+    length(setdiff(questionnaire_key, gonogo_key)),
+    "questionnaire keys unmatched"
   )
 )
 
-# Check questionnaire anxiety scores
+# Check that the questionnaire contains usable numeric anxiety scores.
 anxiety <- suppressWarnings(
   as.numeric(as.character(questionnaires$STAI.total))
 )
@@ -238,7 +253,7 @@ record_check(
   paste(sum(is.finite(anxiety)), "usable scores")
 )
 
-# Check Go/No-Go expression labels
+# Check that all expected expression conditions are represented.
 expression_values <- unique(na.omit(as.character(gonogo$Express)))
 expected_expression <- c("Neutral", "Happy", "Fear")
 
@@ -248,13 +263,16 @@ record_check(
   paste("Found:", paste(expression_values, collapse = ", "))
 )
 
-# Check outcome counts
+# Verify that the outcome counts used by the binomial model
+# are numeric, finite, non-negative, and whole numbers.
 count_names <- c("AccurateNoPress", "InaccuratePress")
+
 counts <- lapply(gonogo[count_names], function(x) {
   suppressWarnings(as.numeric(as.character(x)))
 })
 
 counts_matrix <- do.call(cbind, counts)
+
 count_values_valid <- all(is.finite(counts_matrix))
 counts_nonnegative <- count_values_valid && all(counts_matrix >= 0)
 counts_integer <- count_values_valid &&
@@ -278,9 +296,10 @@ record_check(
   "Trial counts should be integers"
 )
 
+# Check that each row contains at least one counted response.
 if (count_values_valid) {
   total_counts <- rowSums(counts_matrix)
-  
+
   record_check(
     "Each row has at least one counted response",
     all(total_counts > 0),
@@ -288,7 +307,8 @@ if (count_values_valid) {
   )
 }
 
-# Check allocation and post-intervention data
+# Confirm that the dataset contains the allocation group and
+# post-intervention observations required for the planned analysis.
 record_check(
   "Placebo allocation is present",
   any(as.character(gonogo$Allocation) == "PLACEBO", na.rm = TRUE),
@@ -301,7 +321,7 @@ record_check(
   "Expected time-point label: Post or POST"
 )
 
-# Print the final report
+# Print the final report showing the status and details of each check.
 cat("\n========== FINAL CHECK REPORT ==========\n")
 print(check_results, row.names = FALSE)
 
