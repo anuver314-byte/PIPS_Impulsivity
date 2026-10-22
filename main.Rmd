@@ -1,53 +1,92 @@
-
 ---
 title: "Impact of Emotion on Impulsivity in Inhibition Tasks"
 author: "PiPS Group: A. Verma, K. Huang, S. Radeva"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
-# Project overview
+# 1. Project overview
 
-This project uses behavioural data from the SSRA and Human
-Behaviour Study, available through Zenodo.
+This project investigates whether trait anxiety moderates the relationship between emotional stimulus valence and impulsivity during a Go/No-Go task. We use an existing behavioural dataset to analyse commission errors and explore the sample size that may be required to detect the interaction in a future study.
 
-The project explores a research question developed by the group
-using appropriate statistical analyses and visualisations.
+Our project combines data preparation, statistical analysis, and Monte Carlo simulation for power analysis. The code for each step is maintained in separate R scripts in the `data and statistics` folder.
 
-# Research question
+## Research question
 
-What is the effect of emotional valence on impulsivity at different levels of trait anxiety?
+**Does trait anxiety moderate the effect of emotional stimulus valence on impulsivity, as measured by commission errors in a Go/No-Go task?**
 
-The project investigates whether the emotional valence of stimuli is associated with impulsivity during inhibition tasks, and whether this relationship varies according to individual differences in trait anxiety.
+## 2. Data source and preparation
 
-# Data
+We use the publicly available *SSRA and Human Behaviour Study* dataset hosted on Zenodo:
 
-<!-- Describe the dataset, its source, and the variables used. -->
-The dataset and associated scripts are available at:
-https://doi.org/10.5281/zenodo.12599247
+[https://doi.org/10.5281/zenodo.12599247](https://doi.org/10.5281/zenodo.12599247)
 
-# Methods
+The data preparation script combines the Go/No-Go task data with questionnaire scores, selects participants assigned to the placebo condition, and prepares the variables for analysis. The analysis uses post-measurement task data and trait anxiety scores, with missing questionnaire scores handled using the participant's other measurement occasion where available.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo = TRUE,
-  warning = FALSE,
-  message = FALSE
-)
-```
+This missing-data procedure assumes that trait anxiety is sufficiently stable across measurement occasions. The implications of this assumption should be considered when interpreting the results.
 
-```{r}
-# Add data loading and validation here.
-# Add the group's statistical analyses and plots below.
-```
+The main variables are:
 
-# Results
+- **Emotional stimulus valence (`Express`):** Neutral, Happy, and Fear.
+- **Trait anxiety (`STAI_c`):** mean-centred trait anxiety score.
+- **Commission errors:** incorrect responses on No-Go trials.
+- **Participant ID (`Participant.ID`):** identifies repeated observations from the same participant.
 
-<!-- Interpret the statistical results and figures here. -->
+The preparation code is in `data and statistics/data_preparation.R`.
 
-# Discussion
+## 3. Statistical analysis
 
-<!-- Explain the findings, limitations, and implications here. -->
+We use a binomial generalised linear mixed-effects model (GLMM). This model is appropriate for the count of commission errors relative to successful No-Go responses and accounts for repeated observations from the same participant.
 
-# Reproducibility
+The model includes emotional valence, mean-centred trait anxiety, and their interaction as fixed effects, with a random intercept for participant:
 
-See README.md for installation and instructions for running this project.
+`cbind(InaccuratePress, AccurateNoPress) ~ Express * STAI_c + (1 | Participant.ID)`
+
+The interaction tests whether the association between trait anxiety and commission-error probability differs across emotional-valence conditions. We compare models with and without the interaction using a likelihood-ratio test.
+
+Model diagnostics are also conducted to assess whether the model provides an adequate description of the data. Any diagnostic concerns and their implications should be reported alongside the results.
+
+The analysis script is `data and statistics/analysis.R`. It produces model summaries, diagnostic outputs, and an interaction plot.
+
+## 4. Results and visualisation
+
+The analysis reports the estimated relationships between emotional valence, trait anxiety, and commission-error probability. The interaction plot visualises predicted commission-error probability across trait-anxiety scores for the three valence conditions.
+
+The results should be interpreted using the fitted model and the interaction test, rather than by visual inspection of the plot alone. In particular, the interaction test addresses whether the effect of trait anxiety differs across conditions.
+
+*Insert the final model estimates, likelihood-ratio test result, and interpretation here after confirming the final analysis output.*
+
+## 5. Monte Carlo power analysis
+
+We use Monte Carlo simulation to investigate the power of the planned interaction test at different sample sizes. The simulation generates datasets based on parameters from the fitted GLMM, fits the full and reduced models to each simulated dataset, and records whether the interaction test reaches the chosen significance threshold.
+
+Power is estimated as the proportion of successful simulations in which the interaction test has a p-value below .05. The analysis also records failed simulations, which must be examined before interpreting the estimated power.
+
+The simulation code is in `data and statistics/simulation_power_analysis.R`.
+
+The power analysis is still being checked. An initial run failed because the compared models did not use the same number of observations. A small diagnostic run subsequently completed successfully, but three simulations are not enough to provide a reliable power estimate. The final power results and any required sample-size estimate should only be reported after the full simulation has been rerun and validated.
+
+## 6. Limitations
+
+Several limitations should be considered:
+
+- The analysis uses an existing dataset, so the available design and measurements constrain the questions that can be addressed.
+- Filling missing trait-anxiety scores from another measurement occasion relies on an assumption of stability.
+- The GLMM depends on modelling assumptions that must be assessed through diagnostics.
+- The Monte Carlo power estimates depend on the fitted model and the assumptions used to generate simulated datasets.
+- A power estimate based on a small number of successful simulations would be too uncertain to support a firm sample-size recommendation.
+
+## 7. Reproducibility and project structure
+
+The repository separates the main report from the supporting scripts:
+
+- `main.Rmd`: this report and the main project walkthrough.
+- `data and statistics/data_preparation.R`: data preparation.
+- `data and statistics/analysis.R`: statistical analysis, diagnostics, and visualisation.
+- `data and statistics/simulation_power_analysis.R`: Monte Carlo power analysis.
+
+The source data and any required intermediate files must be available at the paths expected by the scripts. Required R packages must be installed before running the project.
+
+The final version of this report should be knitted from a clean R session to verify that the documented workflow runs from beginning to end.
