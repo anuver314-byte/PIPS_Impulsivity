@@ -6,9 +6,9 @@ This repository contains the code and supporting materials for our group project
 
 The project investigates whether trait anxiety moderates the relationship between emotional stimulus valence and impulsivity, measured using commission errors in a Go/No-Go task.
 
-The current workflow focuses on analysing an existing public dataset and developing a Monte Carlo simulation for statistical power analysis. R is used for data validation, data preparation, statistical analysis, and simulation-based power analysis.
-
 **Research question:** Does trait anxiety moderate the effect of emotional stimulus valence on impulsivity, as measured by commission errors in a Go/No-Go task?
+
+The project combines data validation, statistical analysis, and Monte Carlo simulation-based power analysis. R is used for the statistical workflow. The complete integration of the project's components is still in progress.
 
 ## Data Source
 
@@ -16,32 +16,45 @@ The project uses the publicly available SSRA and Human Behaviour dataset hosted 
 
 https://doi.org/10.5281/zenodo.12599247
 
-The statistical workflow uses Go/No-Go task data and questionnaire data. The current analysis focuses on the placebo group and post-measurement data, according to the analysis plan.
+The statistical workflow uses Go/No-Go task data and questionnaire data. The current analysis plan focuses on the placebo group and post-intervention measurements.
 
-The original dataset should be interpreted in the context of the study in which it was collected. The main report documents the data-preparation decisions, analysis methods, and limitations.
-
-The source files used by the current validation and preparation scripts are:
+The original source files used by the statistical workflow are:
 
 - `study_data.csv`
 - `PREPOST_questionnaires_combined.xlsx`
 
-These files are expected to be located in `data and statistics/previous_data/`. Both should be included in the final repository if permitted by the dataset's terms and the project's data-management requirements.
+The statistical scripts expect these files to be located in `data and statistics/previous_data/`. Their availability and location must be confirmed when the statistical branch is integrated.
+
+Original data should only be committed to the repository after the group has confirmed that redistribution is permitted and consistent with the project's data-management requirements.
 
 ## Project Components
 
-### 1. Data preparation
+### 1. Data validation
 
-`data and statistics/data_preparation.R` prepares the statistical dataset from the original source files. It reads the Go/No-Go task data and questionnaire data, joins them using participant and measurement identifiers, filters the placebo group, and prepares the trait-anxiety and emotional-valence variables.
+The `tests/` directory contains two validation scripts:
 
-The prepared dataset must be saved as an `.rds` file for the downstream scripts. The current workflow expects `GoNo.rds` at:
+- **`tests/check_go_nogo_data.R`** checks the structure and response coding of Go/No-Go task-output CSV files. It validates required columns, trial numbering, trial types, error codes, and reaction times. The script accepts a file path from the command line or allows interactive file selection in RStudio.
+- **`tests/check_statistics_data.R`** checks the statistical input files for expected columns, usable participant identifiers, recognised measurement occasions, overlapping participant/time-point records, and selected data properties.
+
+The test files `tests/bad_data_test.csv` and `tests/test_bad_trial_type.csv` contain deliberately corrupted data for testing the Go/No-Go validation checks.
+
+`tests/tests_log.md` records validation and testing results.
+
+These scripts check selected data properties; they do not independently establish the scientific validity of the analysis or statistical model.
+
+### 2. Data preparation
+
+The statistical workflow includes `data and statistics/data_preparation.R`. It prepares the analysis dataset from the Go/No-Go task data and questionnaire data, including participant matching, measurement occasions, and variables needed for the planned analysis.
+
+The downstream workflow expects the prepared dataset to be saved as:
 
 `data and statistics/previous_data/GoNo.rds`
 
-**Important:** The version of the preparation code reviewed so far does not appear to create this file with `saveRDS()`. This must be corrected before the workflow can run reliably from a fresh clone. The preparation script should save the prepared dataset at the expected location, retaining the measurement occasions required by subsequent analysis steps.
+The statistical scripts currently reside on a teammate's branch and have not yet been integrated into this branch. The data-preparation script must be checked to ensure that it generates the expected output at the correct location.
 
-### 2. Statistical analysis
+### 3. Statistical analysis
 
-`data and statistics/analysis.R` fits and evaluates a binomial generalized linear mixed-effects model (GLMM) to examine commission-error counts across emotional-valence conditions and levels of trait anxiety.
+The statistical workflow includes `data and statistics/analysis.R`, which fits a binomial generalized linear mixed-effects model (GLMM) to examine commission-error counts across emotional-valence conditions and levels of trait anxiety.
 
 The planned model includes:
 
@@ -52,86 +65,76 @@ The planned model includes:
 
 The interaction is evaluated by comparing the full model with a reduced model that excludes the interaction, using a likelihood-ratio test.
 
-The analysis script also performs data checks and model diagnostics, produces plots, and saves model summaries and results. It reads the prepared dataset from `data and statistics/previous_data/GoNo.rds`.
-
-After fitting the model, the script saves the fitted model as:
+The analysis also includes model diagnostics, plots, and statistical summaries. The workflow expects a fitted model to be saved at:
 
 `data and statistics/results/bi_model.rds`
 
-The `results/` directory must exist before the script attempts to write output files. The script should either create this directory automatically or the repository should include it.
+The analysis scripts and their file dependencies must be verified after integration.
 
-### 3. Monte Carlo power analysis
+### 4. Monte Carlo power analysis
 
-`data and statistics/simulation_power_analysis.R` estimates statistical power by generating simulated datasets, fitting the planned models, and evaluating the interaction using a likelihood-ratio test.
+The statistical workflow includes `data and statistics/simulation_power_analysis.R`. It uses Monte Carlo simulation to estimate power for detecting the planned interaction.
 
-The simulation depends on the analysis data and model-related inputs. Its file dependencies, model-fitting procedure, and compatibility with the statistical analysis script must be confirmed before the full simulation can be considered reproducible.
+The simulation depends on the analysis data and model-fitting procedure. Its inputs, execution, and outputs must be checked against the final analysis workflow before the results can be interpreted.
 
-The power-analysis code is currently being debugged and validated. A small diagnostic run completed after a change to the reduced-model fitting procedure. However, this does not establish that the full simulation works correctly.
-
-**The diagnostic result is not a final power estimate and must not be used to determine a required sample size.** The full power analysis must be run and reviewed before its results can be interpreted.
-
-### 4. Data validation and testing
-
-`tests/check_statistics_data.R` checks the statistical input files and verifies selected data properties.
-
-The recorded validation run completed 19 checks with zero failures. It also identified 14 rows with missing or unusable trait-anxiety scores, which require transparent handling in the analysis.
-
-Two deliberately corrupted CSV test cases were detected as expected.
-
-These results apply to the checks implemented in the validation script; they do not independently establish the scientific validity of the dataset or analysis.
-
-See the project status and test logs for details of completed checks and outstanding issues.
+Small diagnostic runs are useful for checking whether the simulation code executes, but they are not substitutes for a sufficiently large simulation and do not establish a final power estimate.
 
 ### 5. Main report
 
-`main.Rmd` is the main R Markdown report. It documents the research question, dataset, methods, results, interpretation, limitations, and reproducibility information.
+`main.Rmd` is the main R Markdown report. It is intended to document the research question, dataset, methods, results, interpretation, limitations, and reproducibility information.
 
-The final report is intended to provide a reproducible entry point to the project workflow, including data preparation, statistical analysis, and the simulation component. It should execute the relevant code and display the key results and plots, rather than only describe the procedures.
-
-The integrated report and full workflow still need to be tested from a clean R session before this can be considered complete.
+The report should be updated to reflect the integrated scripts and their actual outputs. The complete workflow must be tested from a clean R session before the report can be considered a reproducible entry point to the project.
 
 ## Repository Structure
 
-The following structure describes the intended roles of the main project components. Confirm the exact paths against the final repository before running the code.
+The following structure summarises the current project files and the intended location of the statistical components. The statistical folder remains on a teammate's branch until integration is completed.
 
 ```text
 PIPS_Impulsivity/
 ├── README.md
 ├── main.Rmd
-├── data and statistics/
-│   ├── data_preparation.R
-│   ├── analysis.R
-│   ├── simulation_power_analysis.R
-│   ├── previous_data/
-│   │   ├── study_data.csv
-│   │   ├── PREPOST_questionnaires_combined.xlsx
-│   │   └── GoNo.rds
-│   └── results/
-│       └── bi_model.rds
-├── tests/
-│   └── check_statistics_data.R
-└── project and test logs, if included
+├── docs/
+│   └── project_status.md
+└── tests/
+    ├── check_go_nogo_data.R
+    ├── check_statistics_data.R
+    ├── tests_log.md
+    ├── bad_data_test.csv
+    └── test_bad_trial_type.csv
 ```
 
-This is an intended overview, not a guarantee that every listed file or folder is currently committed. `GoNo.rds` and `bi_model.rds` are generated files, not original source data. The preparation and analysis scripts should generate them in the locations expected by downstream steps.
+The following statistical components are planned for integration:
 
-Exploratory Python/PsychoPy scripts and related literature available on a teammate's branch are not currently part of the primary statistical-analysis workflow and should not be assumed to be integrated into the shared project.
+```text
+data and statistics/
+├── data_preparation.R
+├── analysis.R
+├── simulation_power_analysis.R
+├── previous_data/
+│   ├── study_data.csv
+│   ├── PREPOST_questionnaires_combined.xlsx
+│   └── GoNo.rds
+└── results/
+    └── bi_model.rds
+```
+
+The second structure represents the intended statistical workflow, not a claim that these files are already present on the current branch. Generated `.rds` files should be created by the documented workflow or explicitly identified as required pre-existing files.
 
 ## Requirements
 
-The project uses R and the following packages based on the imports identified in the current scripts:
+The statistical scripts and report use R. Based on the imports identified so far, the expected packages include:
 
 - `readxl` — reading Excel questionnaire data.
 - `here` — project-relative file paths.
 - `dplyr` — data manipulation.
-- `tidyr` — filling missing values during data preparation.
+- `tidyr` — data preparation.
 - `ggplot2` — data visualisation.
 - `lme4` — fitting generalized linear mixed-effects models.
 - `DHARMa` — model diagnostics.
 - `scales` — formatting plot axes and labels.
 - `knitr` and `rmarkdown` — rendering the main report.
 
-Install the listed packages in R if they are not already available:
+Install the packages if they are not already available:
 
 ```r
 install.packages(c(
@@ -148,103 +151,74 @@ install.packages(c(
 ))
 ```
 
-Review the library imports at the beginning of all three statistical scripts and the report to confirm that this list includes every dependency required by the final workflow.
+The package list should be checked against the final integrated scripts and report.
 
 ## Running the Project
 
 ### 1. Open the repository
 
-Clone or download the repository and open its root directory in RStudio. Keep the folder structure intact so that the project-relative paths used by `here` resolve correctly.
+Clone the repository and open its root directory in RStudio. Preserve the folder structure so that project-relative paths resolve correctly.
 
-### 2. Check the source data
+### 2. Validate the Go/No-Go task data
 
-Confirm that both original input files are present:
+Run the Go/No-Go validation script:
 
-- `data and statistics/previous_data/study_data.csv`
-- `data and statistics/previous_data/PREPOST_questionnaires_combined.xlsx`
+```r
+source("tests/check_go_nogo_data.R")
+```
 
-Run the validation script from the repository root:
+When run interactively in RStudio, the script prompts you to select a CSV file. It can also accept a file path when run from the command line.
+
+### 3. Validate the statistical input data
+
+Once the required statistical input files are available, run:
 
 ```r
 source("tests/check_statistics_data.R")
 ```
 
-This command assumes the validation script is located at `tests/check_statistics_data.R` and that R is working from the repository root.
+This script expects the input files at the locations described in the statistical workflow. Check that the files exist before running the validation.
 
-### 3. Prepare the analysis data
+### 4. Run the statistical workflow
 
-Run the data-preparation script:
+After the statistical branch has been integrated, follow the execution order below:
 
-```r
-source("data and statistics/data_preparation.R")
-```
+1. Run `data and statistics/data_preparation.R` to prepare the analysis dataset.
+2. Confirm that `data and statistics/previous_data/GoNo.rds` has been created.
+3. Run `data and statistics/analysis.R` to fit the model and generate the analysis outputs.
+4. Confirm that the results directory and fitted-model output are available.
+5. Run `data and statistics/simulation_power_analysis.R` after confirming that its required inputs are compatible with the analysis workflow.
 
-The script should read the original source files, prepare the analysis dataset, and save `GoNo.rds` to `data and statistics/previous_data/`.
+These steps describe the intended workflow. They should be tested from a clean R session after integration before being treated as fully reproducible instructions.
 
-**This step must be verified:** the version of the preparation code reviewed so far does not appear to save `GoNo.rds`. Add and test the appropriate `saveRDS()` call before relying on this command for a complete workflow.
-
-### 4. Fit and evaluate the statistical model
-
-After confirming that `GoNo.rds` exists at the expected location, run:
-
-```r
-source("data and statistics/analysis.R")
-```
-
-The analysis script should fit the GLMM, run the diagnostic checks, produce the plots and statistical summaries, and save the fitted model to `data and statistics/results/bi_model.rds`.
-
-Ensure the `results/` directory exists before running the script.
-
-### 5. Run the Monte Carlo power analysis
-
-After confirming the simulation's input requirements and that its required data or model objects are available, run:
-
-```r
-source("data and statistics/simulation_power_analysis.R")
-```
-
-The simulation remains under validation. Do not interpret the small diagnostic run as a final power estimate. The full simulation must be executed and reviewed before its results are reported.
-
-### 6. Render the main report
+### 5. Render the main report
 
 Open `main.Rmd` in RStudio and use **Knit** to render the report.
 
-The intended final report should execute the required preparation, analysis, and simulation steps and display the relevant results and plots. The exact integration and execution order must be confirmed in `main.Rmd`; rendering the current report should not be assumed to run the entire workflow until this has been tested.
-
-### Workflow summary
-
-The intended execution sequence is:
-
-**Validate source data → prepare and save data → fit and evaluate the statistical model → run the Monte Carlo power analysis → report the results in `main.Rmd`.**
-
-The complete workflow has not yet been verified from a clean R session. In particular, confirm that the preparation script creates `GoNo.rds`, the analysis script creates `bi_model.rds`, and the simulation uses compatible inputs. Update these instructions after the scripts have been integrated and tested end to end.
+The report's execution order and dependencies must be verified against the final scripts. Do not assume that rendering it runs the entire workflow until this has been tested.
 
 ## Data Management and Reproducibility
 
-- Preserve the provenance of the public dataset and document all data transformations.
+- Preserve the provenance of the public dataset and document data transformations.
 - Do not commit identifiable participant information or other sensitive data to the public repository.
+- Confirm that the group's data-management requirements and dataset terms permit any redistribution of source files.
 - Document missing-data handling and analysis decisions transparently.
-- Use reproducible project-relative paths wherever possible.
-- Keep original input data separate from generated and processed data.
-- Record package requirements and relevant software-version information.
-- Make sure that generated `.rds` files are either produced by the documented workflow or explicitly identified as required pre-existing files.
-- Ensure that the main report and README accurately describe which steps have been tested and which remain under development.
+- Use project-relative paths wherever possible.
+- Keep original source data separate from generated and processed data.
+- Document package requirements and relevant software versions.
+- Ensure that generated files are produced by the documented workflow or clearly identified as required pre-existing files.
 
 ## Project Status
 
-**In development.**
+**Status: In development.**
 
-The recorded statistical input-validation run completed 19 checks with zero failures. Two deliberately corrupted CSV test cases were detected as expected. A three-simulation diagnostic run of the revised power-analysis code also completed without failures, but this small run is not sufficient to validate the full simulation or provide a reliable power estimate.
+- **Statistical input-data validation:** The recorded test run completed 19 checks with zero failures.
+- **Go/No-Go validation:** The checker detected deliberately corrupted trial numbering. Testing of the revised script against valid and corrupted files is being completed.
+- **Statistical workflow:** Data preparation, analysis, and simulation scripts remain on a teammate's branch and require integration and compatibility checks.
+- **Power analysis:** Diagnostic runs have been performed, but the full simulation and its interpretation remain under validation.
+- **Main report:** The complete workflow still needs to be tested from a clean R session.
 
-The following items remain to be completed or confirmed:
-
-- Ensure the data-preparation script creates `GoNo.rds` at the expected location.
-- Confirm all required input files and generated `.rds` files.
-- Ensure the analysis script creates its results directory when needed and saves `bi_model.rds`.
-- Verify that the power-analysis script uses consistent inputs and completes successfully.
-- Integrate the preparation, analysis, and simulation steps into `main.Rmd`.
-- Test the complete workflow from a clean R session.
-- Finalise the setup and execution instructions after end-to-end testing.
+The project status and execution instructions should be updated as integration and testing progress.
 
 ## Contributors
 
