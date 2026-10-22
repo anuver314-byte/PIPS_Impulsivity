@@ -55,42 +55,44 @@ To evaluate the interaction, the full model is compared with a reduced model tha
 
 The statistical analysis script is `data and statistics/analysis.R`. It is intended to produce model summaries, diagnostic outputs, and visualisations.
 
-Model diagnostics indicated significant overdispersion and excess outliers. A sensitivity analysis using a beta-binomial GLMM showed improved overall fit, although some overdispersion remained. The substantive conclusion was unchanged: the interaction between emotional condition and trait anxiety was not statistically significant. The original binomial GLMM was retained as the primary model and as the basis for the power analysis. These diagnostic concerns should nevertheless be considered when interpreting the results.
+Model diagnostics indicated significant overdispersion and excess outliers in the original binomial GLMM. A sensitivity analysis using a beta-binomial GLMM improved overall model fit, although some overdispersion remained. Importantly, the interaction between emotional condition and trait anxiety remained non-significant under both models. This suggests that the substantive conclusion was robust to the alternative modelling approach.
 
-# 4. Results and visualisation
+The original binomial GLMM was retained as the primary model and as the basis for the simulation-based power analysis. However, the diagnostic findings should be considered when interpreting the results and the power estimates.
 
-The analysis is intended to estimate the relationships between emotional valence, trait anxiety, and commission-error probability.
+# 4. Results and interpretation
 
-The interaction plot visualises predicted commission-error probability across trait-anxiety scores for the three emotional-valence conditions. These predictions should be interpreted alongside the fitted model and the interaction test, rather than by visual inspection alone.
+The analysis examined the relationships between emotional valence, trait anxiety, and commission-error probability. The interaction plot visualises predicted commission-error probability across trait-anxiety scores for the three emotional-valence conditions. These predictions should be interpreted alongside the fitted models and the interaction test, rather than by visual inspection alone.
 
 ## Statistical results
 
-*To be completed after the final analysis has been reviewed.*
+The interaction between emotional condition and trait anxiety was not statistically significant in the original binomial GLMM. The beta-binomial sensitivity analysis improved overall model fit, although some overdispersion remained, and the interaction remained non-significant.
 
-Report the following:
+Taken together, these findings do not provide statistically significant evidence that the relationship between trait anxiety and commission-error probability differs across emotional-valence conditions. The consistency of the interaction result across the two models supports the robustness of this conclusion to the alternative model specification. However, a non-significant interaction does not establish that no interaction exists.
 
-- The likelihood-ratio test comparing the full and reduced models, including the test statistic, degrees of freedom, and p-value.
+The interpretation should also account for the model's diagnostic concerns, particularly overdispersion and excess outliers in the original binomial GLMM.
+
+The final report should include the numerical results from the analysis output:
+
+- The likelihood-ratio test comparing the full and reduced binomial GLMMs, including the test statistic, degrees of freedom, and p-value.
 - The relevant model estimates and uncertainty measures.
-- The interpretation of the interaction in relation to the research question.
-- Any diagnostic concerns that affect the interpretation of the findings.
-
-No final conclusion about the interaction should be drawn until the model output and diagnostic findings have been reviewed.
+- The corresponding interaction-test result from the beta-binomial sensitivity analysis, where available.
+- The diagnostic findings relevant to interpretation.
 
 # 5. Monte Carlo power analysis
 
-Monte Carlo simulation is used to investigate the power of the planned interaction test at different sample sizes.
+Monte Carlo simulation was used to investigate the power of the planned interaction test at different sample sizes.
 
 The simulation generates datasets based on parameters from the fitted model, fits the full and reduced models to the simulated data, and records whether the interaction test reaches the selected significance threshold.
 
-Estimated power is the proportion of successful simulations in which the interaction test produces a p-value below .05. The number of successful and failed simulations must also be reported, because failed model fits can affect the reliability of the estimate.
+Estimated power is the proportion of successful simulations in which the interaction test produces a p-value below .05. The number of successful and failed simulations should also be reported, because failed model fits can affect the reliability of the estimate.
 
 The simulation script is `data and statistics/simulation_power_analysis.R`.
 
-An initial run encountered a problem because the compared models did not use the same number of observations. A subsequent small diagnostic run completed successfully, but three simulations are insufficient to provide a reliable power estimate.
+The power analysis examined different candidate sample sizes using parameters estimated from the original binomial GLMM. The resulting estimates should be interpreted in light of the model assumptions and simulation diagnostics. In particular, the number of successful and failed simulations and any convergence problems should be considered when assessing the reliability of the estimates.
 
-The simulation uses parameters estimated from the original binomial GLMM and does not incorporate the additional dispersion observed in the preliminary data. Consequently, the estimated power is conditional on the binomial model assumptions and may be optimistic if similar extra-binomial variability is present in future data. Power estimates should not be interpreted as definitive sample-size requirements.
+The simulation uses parameters estimated from the original binomial GLMM and assumes binomial variability. It does not incorporate the additional dispersion observed in the preliminary data. Consequently, estimated power may be optimistic if similar extra-binomial variability is present in future data.
 
-The full simulation must be run and its failures, convergence behaviour, and results reviewed before reporting a final power estimate or recommending a sample size.
+Power estimates should therefore be interpreted as conditional on the model assumptions rather than as definitive sample-size requirements. Any numerical power estimates or proposed sample sizes reported in the final version should be supported by the corresponding simulation outputs.
 
 # 6. Limitations
 
@@ -99,8 +101,9 @@ Several limitations are relevant to this project:
 - **Existing dataset:** The available design, measurements, and participant characteristics constrain the conclusions that can be drawn.
 - **Missing questionnaire data:** Filling missing trait-anxiety scores from another measurement occasion assumes sufficient stability in trait anxiety.
 - **Model assumptions:** The reliability of the statistical conclusions depends on the adequacy of the fitted model and the findings of its diagnostic checks.
-- **Power simulation assumptions:** Simulated power depends on the model parameters and assumptions used to generate the datasets.
-- **Simulation uncertainty:** Power estimates based on too few successful simulations may be unstable and should not be used to justify a sample-size recommendation.
+- **Overdispersion:** The original binomial GLMM showed overdispersion and excess outliers. Although the beta-binomial sensitivity analysis improved overall fit, some overdispersion remained.
+- **Power simulation assumptions:** Simulated power depends on the model parameters and assumptions used to generate the datasets. The current simulation approach does not incorporate the additional dispersion observed in the preliminary data, which may lead to optimistic power estimates.
+- **Simulation uncertainty:** The reliability of power estimates depends on the number of successful simulations and the frequency of failed or non-convergent model fits.
 
 These limitations should be considered when interpreting the results and planning future research.
 
@@ -118,7 +121,7 @@ The main components are:
 - `data and statistics/analysis.R`: fits the statistical model and produces diagnostics and visualisations.
 - `data and statistics/simulation_power_analysis.R`: conducts the Monte Carlo power analysis.
 
-The statistical scripts currently require integration with the main project branch. Their input paths, generated outputs, and execution order must be verified once the components have been integrated.
+The statistical scripts require integration with the main project branch. Their input paths, generated outputs, and execution order should be verified once the components have been integrated.
 
 The required R packages must be installed, and any permitted source data must be available at the expected paths. Generated files should be produced by the documented workflow or clearly identified as required pre-existing inputs.
 
