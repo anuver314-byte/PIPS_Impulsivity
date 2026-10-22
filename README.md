@@ -42,7 +42,48 @@ The test files `tests/bad_data_test.csv` and `tests/test_bad_trial_type.csv` con
 
 These scripts check selected data properties; they do not independently establish the scientific validity of the analysis or statistical model.
 
-### 2. Data preparation
+## Data Validation and Error Checking
+
+Run the validation scripts before conducting the analysis. They check whether the input data have the expected structure and whether important values are valid.
+
+### 1. Validate Go/No-Go task data
+
+Run the following command from the repository root:
+
+```bash
+Rscript tests/check_go_nogo_data.R
+```
+
+The script checks the Go/No-Go task-output CSV, including required columns, trial numbering, trial types, error coding, and reaction times.
+
+If the script requires a file path, provide the path to the CSV file when prompted or use the file-selection option supported by the script.
+
+### 2. Validate statistical analysis data
+
+Run:
+
+```bash
+Rscript tests/check_statistics_data.R
+```
+
+This script checks the source files required for the statistical workflow, including required columns, participant IDs, measurement occasions, STAI scores, expression conditions, outcome counts, and the availability of post-intervention data.
+
+Ensure that the required source files are available at the expected locations before running this check.
+
+### 3. Interpreting validation results
+
+Read the validation report printed by each script before proceeding.
+
+- **All checks pass:** Continue to data preparation and analysis.
+- **A check fails:** Investigate and correct the relevant input data or file path, then rerun the validation script.
+- **A critical check fails in the statistical-data checker:** The script reports the failure and stops with an error. Do not proceed with the statistical workflow until the problem has been resolved.
+- **A non-critical check fails or produces an informational warning:** Review the report and determine whether the result is expected. For example, not all participants may have matching records across every measurement occasion.
+
+The validation scripts check different inputs. Passing one script does not guarantee that the other dataset is valid.
+
+Test results and deliberately corrupted test cases are documented in `tests/tests_log.md`.
+
+### 4. Data preparation
 
 The statistical workflow includes `data and statistics/data_preparation.R`. It prepares the analysis dataset from the Go/No-Go task data and questionnaire data, including participant matching, measurement occasions, and variables needed for the planned analysis.
 
@@ -52,7 +93,7 @@ The downstream workflow expects the prepared dataset to be saved as:
 
 The statistical scripts currently reside on a teammate's branch and have not yet been integrated into this branch. The data-preparation script must be checked to ensure that it generates the expected output at the correct location.
 
-### 3. Statistical analysis
+### 5. Statistical analysis
 
 The statistical workflow includes `data and statistics/analysis.R`, which fits a binomial generalised linear mixed-effects model (GLMM) to examine commission-error counts across emotional-valence conditions and levels of trait anxiety.
 
@@ -77,7 +118,7 @@ The workflow expects a fitted model to be saved at:
 
 The analysis scripts and their file dependencies must be verified after integration.
 
-### 4. Monte Carlo power analysis
+### 6. Monte Carlo power analysis
 
 The statistical workflow includes `data and statistics/simulation_power_analysis.R`. It uses Monte Carlo simulation to estimate power for detecting the planned interaction.
 
@@ -87,7 +128,7 @@ The simulation uses parameters estimated from the original binomial GLMM and doe
 
 Small diagnostic runs are useful for checking whether the simulation code executes, but they are not substitutes for a sufficiently large simulation and do not establish a final power estimate. The number of successful and failed simulations, convergence behaviour, and final results must be reviewed before recommending a sample size.
 
-### 5. Main report
+### 7. Main report
 
 `main.Rmd` is the main R Markdown report. It is intended to document the research question, dataset, methods, results, interpretation, limitations, and reproducibility information.
 
@@ -130,36 +171,32 @@ The second structure represents the intended statistical workflow, not a claim t
 
 ## Requirements
 
-The statistical scripts and report use R. Based on the imports identified so far, the expected packages include:
+## Requirements
 
-- `readxl` — reading Excel questionnaire data.
-- `here` — project-relative file paths.
-- `dplyr` — data manipulation.
-- `tidyr` — data preparation.
-- `ggplot2` — data visualisation.
-- `lme4` — fitting generalized linear mixed-effects models.
-- `DHARMa` — model diagnostics.
-- `scales` — formatting plot axes and labels.
-- `knitr` and `rmarkdown` — rendering the main report.
+The project uses R and the following packages for data preparation, statistical analysis, diagnostics, and report generation:
 
-Install the packages if they are not already available:
+- `readxl`
+- `here`
+- `dplyr`
+- `tidyr`
+- `ggplot2`
+- `lme4`
+- `DHARMa`
+- `scales`
+- `knitr`
+- `rmarkdown`
+
+Install any missing packages in R before running the workflow:
 
 ```r
 install.packages(c(
-  "readxl",
-  "here",
-  "dplyr",
-  "tidyr",
-  "ggplot2",
-  "lme4",
-  "DHARMa",
-  "scales",
-  "knitr",
-  "rmarkdown"
+  "readxl", "here", "dplyr", "tidyr", "ggplot2",
+  "lme4", "DHARMa", "scales", "knitr", "rmarkdown"
 ))
 ```
 
-The package list should be checked against the final integrated scripts and report.
+Run the commands from the repository root so that project-relative paths resolve correctly.
+
 
 ## Running the Project
 
@@ -177,15 +214,26 @@ source("tests/check_go_nogo_data.R")
 
 When run interactively in RStudio, the script prompts you to select a CSV file. It can also accept a file path when run from the command line.
 
+
 ### 3. Validate the statistical input data
 
-Once the required statistical input files are available, run:
+Before running the statistical analysis, ensure that the required input files are available:
+
+- `data and statistics/previous_data/study_data.csv`
+- `data and statistics/previous_data/PREPOST_questionnaires_combined.xlsx`
+
+Run the validation script from the repository root in RStudio:
 
 ```r
 source("tests/check_statistics_data.R")
 ```
 
-This script expects the input files at the locations described in the statistical workflow. Check that the files exist before running the validation.
+The script checks the required files, columns, participant identifiers, measurement occasions, questionnaire scores, expression conditions, and outcome counts. It prints a report showing which checks passed or failed.
+
+**If a critical check fails, stop and resolve the reported issue before running the statistical analysis.** The script is intended to prevent invalid input data from being passed silently into the analysis. Some checks, such as participant/time-point overlap, may be informational rather than critical.
+
+The script requires the `here` and `readxl` packages. Ensure these packages are installed before running it.
+
 
 ### 4. Run the statistical workflow
 
