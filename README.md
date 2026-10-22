@@ -1,284 +1,97 @@
-# PIPS Impulsivity Project
+# PiPS Group Project: Emotion, Trait Anxiety, and Impulsivity
 
-## Overview
+## Project overview
 
-This repository contains the code and supporting materials for our group project in Programming in Psychological Science (PiPS) at the University of Amsterdam (UvA).
+This project investigates how emotional stimulus valence and individual differences in trait anxiety may relate to impulsive responses during a Go/No-Go inhibition task.
 
-The project investigates whether trait anxiety moderates the relationship between emotional stimulus valence and impulsivity, measured using commission errors in a Go/No-Go task.
+The project combines a Python-based experiment developed using PsychoPy with R scripts for data preparation, statistical analysis, and Monte Carlo power analysis. Data-validation scripts are included to check the structure and consistency of experimental and statistical datasets.
 
-**Research question:** Does trait anxiety moderate the effect of emotional stimulus valence on impulsivity, as measured by commission errors in a Go/No-Go task?
+The research question guiding the current analysis is:
 
-The project combines data validation, statistical analysis, and Monte Carlo simulation-based power analysis. R is used for the statistical workflow. The complete integration of the project's components is still in progress.
+**Does trait anxiety moderate the relationship between emotional stimulus valence and commission errors during a Go/No-Go task?**
 
-## Data Source
+The analysis is exploratory and uses an existing dataset to investigate this question. The experiment scripts also provide a basis for running a configurable Go/No-Go task.
 
-The project uses the publicly available SSRA and Human Behaviour dataset hosted on Zenodo:
+## Repository contents
 
-https://doi.org/10.5281/zenodo.12599247
+The repository contains the following components:
 
-The statistical workflow uses Go/No-Go task data and questionnaire data. The current analysis plan focuses on the placebo group and post-intervention measurements.
+- **Experiment:** Python/PsychoPy scripts for presenting instructions, practice trials, and Go/No-Go trials, with trial-level output saved to CSV.
+- **Data preparation:** R code for preparing the questionnaire and experimental data for analysis.
+- **Statistical analysis:** R code for fitting a generalized linear mixed-effects model (GLMM).
+- **Power analysis:** R code using Monte Carlo simulation to investigate statistical power based on the fitted model.
+- **Data validation:** R scripts that check experimental CSV files and statistical-analysis data for common data-quality problems.
+- **Project documentation:** This README and the project status documentation.
 
-The original source files used by the statistical workflow are:
+## Data
 
-- `study_data.csv`
-- `PREPOST_questionnaires_combined.xlsx`
+The statistical analysis uses the dataset hosted on Zenodo:
 
-The statistical scripts expect these files to be located in `data and statistics/previous_data/`. Their availability and location must be confirmed when the statistical branch is integrated.
+[Zenodo dataset, DOI: 10.5281/zenodo.12599247](https://doi.org/10.5281/zenodo.12599247)
 
-Original data should only be committed to the repository after the group has confirmed that redistribution is permitted and consistent with the project's data-management requirements.
+The data-preparation workflow combines the relevant experimental and questionnaire data. The analysis scripts create processed data and model objects for subsequent analysis.
 
-## Project Components
+The experiment also produces trial-level CSV files containing information such as trial number, trial type, error code, and response time.
 
-### 1. Data validation
+**Data note:** Do not commit identifiable participant information or other sensitive data to the public repository.
 
-The `tests/` directory contains two validation scripts:
+## Analysis workflow
 
-- **`tests/check_go_nogo_data.R`** checks the structure and response coding of Go/No-Go task-output CSV files. It validates required columns, trial numbering, trial types, error codes, and reaction times. The script accepts a file path from the command line or allows interactive file selection in RStudio.
-- **`tests/check_statistics_data.R`** checks the statistical input files for expected columns, usable participant identifiers, recognised measurement occasions, overlapping participant/time-point records, and selected data properties.
+The intended workflow is:
 
-The test files `tests/bad_data_test.csv` and `tests/test_bad_trial_type.csv` contain deliberately corrupted data for testing the Go/No-Go validation checks.
+1. **Run the experiment** using the Python/PsychoPy task script, where applicable.
+2. **Prepare the data** using `data_preparation.R`.
+3. **Fit the statistical model** using `Analysis.R`.
+4. **Estimate statistical power** using `Simulation_power_analysis.R`.
+5. **Run the validation scripts** to check the relevant data files.
 
-`tests/tests_log.md` records validation and testing results.
+The statistical scripts depend on the prepared data and model objects produced earlier in the workflow. Run them in the required order and ensure that input files and output directories are available.
 
-These scripts check selected data properties; they do not independently establish the scientific validity of the analysis or statistical model.
+## Data validation
 
-## Data Validation and Error Checking
+The repository includes two R validation scripts:
 
-Run the validation scripts before conducting the analysis. They check whether the input data have the expected structure and whether important values are valid.
+- `tests/check_go_nogo_data.R` checks the format and consistency of the Go/No-Go task output, including trial numbering, trial types, error codes, and reaction times.
+- `tests/check_statistics_data.R` checks data used in the statistical workflow.
 
-### 1. Validate Go/No-Go task data
+The Go/No-Go checker accepts a CSV path as a command-line argument or allows a file to be selected interactively in RStudio.
 
-Run the following command from the repository root:
-
-```bash
-Rscript tests/check_go_nogo_data.R
-```
-
-The script checks the Go/No-Go task-output CSV, including required columns, trial numbering, trial types, error coding, and reaction times.
-
-If the script requires a file path, provide the path to the CSV file when prompted or use the file-selection option supported by the script.
-
-### 2. Validate statistical analysis data
-
-Run:
-
-```bash
-Rscript tests/check_statistics_data.R
-```
-
-This script checks the source files required for the statistical workflow, including required columns, participant IDs, measurement occasions, STAI scores, expression conditions, outcome counts, and the availability of post-intervention data.
-
-Ensure that the required source files are available at the expected locations before running this check.
-
-### 3. Interpreting validation results
-
-Read the validation report printed by each script before proceeding.
-
-- **All checks pass:** Continue to data preparation and analysis.
-- **A check fails:** Investigate and correct the relevant input data or file path, then rerun the validation script.
-- **A critical check fails in the statistical-data checker:** The script reports the failure and stops with an error. Do not proceed with the statistical workflow until the problem has been resolved.
-- **A non-critical check fails or produces an informational warning:** Review the report and determine whether the result is expected. For example, not all participants may have matching records across every measurement occasion.
-
-The validation scripts check different inputs. Passing one script does not guarantee that the other dataset is valid.
-
-Test results and deliberately corrupted test cases are documented in `tests/tests_log.md`.
-
-### 4. Data preparation
-
-The statistical workflow includes `data and statistics/data_preparation.R`. It prepares the analysis dataset from the Go/No-Go task data and questionnaire data, including participant matching, measurement occasions, and variables needed for the planned analysis.
-
-The downstream workflow expects the prepared dataset to be saved as:
-
-`data and statistics/previous_data/GoNo.rds`
-
-The statistical scripts currently reside on a teammate's branch and have not yet been integrated into this branch. The data-preparation script must be checked to ensure that it generates the expected output at the correct location.
-
-### 5. Statistical analysis
-
-The statistical workflow includes `data and statistics/analysis.R`, which fits a binomial generalised linear mixed-effects model (GLMM) to examine commission-error counts across emotional-valence conditions and levels of trait anxiety.
-
-The planned model includes:
-
-- Emotional valence (`Express`).
-- Centred trait anxiety (`STAI_c`).
-- The interaction between emotional valence and trait anxiety.
-- A participant-level random intercept.
-
-The interaction is evaluated by comparing the full model with a reduced model that excludes the interaction, using a likelihood-ratio test.
-
-The analysis also includes model diagnostics, plots, and statistical summaries.
-
-Model diagnostics indicated significant overdispersion and excess outliers. A sensitivity analysis using a beta-binomial GLMM showed improved overall fit, although some overdispersion remained. The substantive conclusion was unchanged: the interaction between emotional condition and trait anxiety was not statistically significant. The original binomial GLMM was retained as the primary model and as the basis for the simulation-based power analysis.
-
-The power analysis uses parameters estimated from the original binomial GLMM and assumes binomial variability. Because the simulations do not incorporate the additional dispersion observed in the preliminary data, their power estimates may be optimistic if similar extra-binomial variability is present in future data. These limitations should be considered when interpreting the results.
-
-The workflow expects a fitted model to be saved at:
-
-`data and statistics/results/bi_model.rds`
-
-The analysis scripts and their file dependencies must be verified after integration.
-
-### 6. Monte Carlo power analysis
-
-The statistical workflow includes `data and statistics/simulation_power_analysis.R`. It uses Monte Carlo simulation to estimate power for detecting the planned interaction.
-
-The simulation depends on the analysis data and model-fitting procedure. Its inputs, execution, and outputs must be checked against the final analysis workflow before the results can be interpreted.
-
-The simulation uses parameters estimated from the original binomial GLMM and does not incorporate the additional dispersion observed in the preliminary data. Consequently, estimated power is conditional on the binomial model assumptions and may be optimistic if future data exhibit similar extra-binomial variability. Power estimates should not be interpreted as definitive sample-size requirements.
-
-Small diagnostic runs are useful for checking whether the simulation code executes, but they are not substitutes for a sufficiently large simulation and do not establish a final power estimate. The number of successful and failed simulations, convergence behaviour, and final results must be reviewed before recommending a sample size.
-
-### 7. Main report
-
-`main.Rmd` is the main R Markdown report. It is intended to document the research question, dataset, methods, results, interpretation, limitations, and reproducibility information.
-
-The report should be updated to reflect the integrated scripts and their actual outputs. The complete workflow must be tested from a clean R session before the report can be considered a reproducible entry point to the project.
-
-## Repository Structure
-
-The following structure summarises the current project files and the intended location of the statistical components. The statistical folder remains on a teammate's branch until integration is completed.
-
-```text
-PIPS_Impulsivity/
-├── README.md
-├── main.Rmd
-├── docs/
-│   └── project_status.md
-└── tests/
-    ├── check_go_nogo_data.R
-    ├── check_statistics_data.R
-    ├── tests_log.md
-    ├── bad_data_test.csv
-    └── test_bad_trial_type.csv
-```
-
-The following statistical components are planned for integration:
-
-```text
-data and statistics/
-├── data_preparation.R
-├── analysis.R
-├── simulation_power_analysis.R
-├── previous_data/
-│   ├── study_data.csv
-│   ├── PREPOST_questionnaires_combined.xlsx
-│   └── GoNo.rds
-└── results/
-    └── bi_model.rds
-```
-
-The second structure represents the intended statistical workflow, not a claim that these files are already present on the current branch. Generated `.rds` files should be created by the documented workflow or explicitly identified as required pre-existing files.
-
-## Requirements
-
-## Requirements
-
-The project uses R and the following packages for data preparation, statistical analysis, diagnostics, and report generation:
-
-- `readxl`
-- `here`
-- `dplyr`
-- `tidyr`
-- `ggplot2`
-- `lme4`
-- `DHARMa`
-- `scales`
-- `knitr`
-- `rmarkdown`
-
-Install any missing packages in R before running the workflow:
-
-```r
-install.packages(c(
-  "readxl", "here", "dplyr", "tidyr", "ggplot2",
-  "lme4", "DHARMa", "scales", "knitr", "rmarkdown"
-))
-```
-
-Run the commands from the repository root so that project-relative paths resolve correctly.
-
-
-## Running the Project
-
-### 1. Open the repository
-
-Clone the repository and open its root directory in RStudio. Preserve the folder structure so that project-relative paths resolve correctly.
-
-### 2. Validate the Go/No-Go task data
-
-Run the Go/No-Go validation script:
+To run the Go/No-Go data checker from R, use:
 
 ```r
 source("tests/check_go_nogo_data.R")
 ```
 
-When run interactively in RStudio, the script prompts you to select a CSV file. It can also accept a file path when run from the command line.
+When running non-interactively, provide the path to the CSV as a command-line argument:
 
-
-### 3. Validate the statistical input data
-
-Before running the statistical analysis, ensure that the required input files are available:
-
-- `data and statistics/previous_data/study_data.csv`
-- `data and statistics/previous_data/PREPOST_questionnaires_combined.xlsx`
-
-Run the validation script from the repository root in RStudio:
-
-```r
-source("tests/check_statistics_data.R")
+```bash
+Rscript tests/check_go_nogo_data.R path/to/task_data.csv
 ```
 
-The script checks the required files, columns, participant identifiers, measurement occasions, questionnaire scores, expression conditions, and outcome counts. It prints a report showing which checks passed or failed.
+Replace `path/to/task_data.csv` with the actual path to the CSV file.
 
-**If a critical check fails, stop and resolve the reported issue before running the statistical analysis.** The script is intended to prevent invalid input data from being passed silently into the analysis. Some checks, such as participant/time-point overlap, may be informational rather than critical.
+## Requirements
 
-The script requires the `here` and `readxl` packages. Ensure these packages are installed before running it.
+The project uses:
 
+- **R** and the packages required by the analysis scripts, including `dplyr`, `tidyr`, `lme4`, `readxl`, and `here`, where applicable.
+- **Python** and **PsychoPy** to run the experiment.
+- The emotional face-image stimuli required by the experiment script.
 
-### 4. Run the statistical workflow
+Install the required packages before running the relevant scripts. The exact package requirements should be checked against the library calls in each script.
 
-After the statistical branch has been integrated, follow the execution order below:
+## Statistical considerations
 
-1. Run `data and statistics/data_preparation.R` to prepare the analysis dataset.
-2. Confirm that `data and statistics/previous_data/GoNo.rds` has been created.
-3. Run `data and statistics/analysis.R` to fit the model and generate the analysis outputs.
-4. Confirm that the results directory and fitted-model output are available.
-5. Run `data and statistics/simulation_power_analysis.R` after confirming that its required inputs are compatible with the analysis workflow.
+The GLMM examines the relationship between emotional stimulus valence, trait anxiety, and commission errors. The Monte Carlo power analysis uses parameters estimated from the preliminary model to explore the sample size needed to detect the effect of interest.
 
-These steps describe the intended workflow. They should be tested from a clean R session after integration before being treated as fully reproducible instructions.
+Power estimates depend on the fitted model, the assumptions used in the simulation, and successful model convergence. Results should therefore be interpreted in light of the exploratory nature of the preliminary analysis and any model diagnostics, including potential overdispersion.
 
-### 5. Render the main report
+## References
 
-Open `main.Rmd` in RStudio and use **Knit** to render the report.
+- Zenodo dataset. (2024). *Dataset associated with the Go/No-Go task project*. https://doi.org/10.5281/zenodo.12599247
 
-The report's execution order and dependencies must be verified against the final scripts. Do not assume that rendering it runs the entire workflow until this has been tested.
-
-## Data Management and Reproducibility
-
-- Preserve the provenance of the public dataset and document data transformations.
-- Do not commit identifiable participant information or other sensitive data to the public repository.
-- Confirm that the group's data-management requirements and dataset terms permit any redistribution of source files.
-- Document missing-data handling and analysis decisions transparently.
-- Use project-relative paths wherever possible.
-- Keep original source data separate from generated and processed data.
-- Document package requirements and relevant software versions.
-- Ensure that generated files are produced by the documented workflow or clearly identified as required pre-existing files.
-
-## Project Status
-
-**Status: In development.**
-
-- **Statistical input-data validation:** The recorded test run completed 19 checks with zero failures.
-- **Go/No-Go validation:** The checker detected deliberately corrupted trial numbering. Testing of the revised script against valid and corrupted files is being completed.
-- **Statistical workflow:** Data preparation, analysis, and simulation scripts remain on a teammate's branch and require integration and compatibility checks.
-- **Model diagnostics:** The beta-binomial sensitivity analysis showed improved overall fit and did not change the substantive conclusion, although some overdispersion remained.
-- **Power analysis:** Diagnostic runs have been performed, but the full simulation and its interpretation remain under validation. The estimates must be interpreted in light of the binomial simulation assumptions and the overdispersion observed in the preliminary data.
-- **Main report:** The complete workflow still needs to be tested from a clean R session.
-
-The project status and execution instructions should be updated as integration and testing progress.
+- **Original study:** Add the full APA reference for the original study associated with the dataset, using the publication details in the project's research literature or the Zenodo record.
 
 ## Contributors
 
-PiPS group project at the University of Amsterdam.
-
-Authors listed in the main report: A. Verma, K. Huang, and S. Radeva.
+A. Verma, K. Huang, and S. Radeva.
