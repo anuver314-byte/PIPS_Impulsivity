@@ -88,9 +88,10 @@ Power estimates depend on the fitted model, the assumptions used in the simulati
 
 ## References
 
-- Zenodo dataset. (2024). *Dataset associated with the Go/No-Go task project*. https://doi.org/10.5281/zenodo.12599247
+- Michael Colwell. (2024). SSRA and Human Behaviour Study - Associated Raw Data and Scripts (Version 5) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.12599247
 
-- **Original study:** Add the full APA reference for the original study associated with the dataset, using the publication details in the project's research literature or the Zenodo record.
+- Colwell, M. J., Tagomori, H., Shang, F., Cheng, H. I., Wigg, C. E., Browning, M., Cowen, P. J., Murphy, S. E., & Harmer, C. J. (2024). Direct serotonin release in humans shapes aversive learning and inhibition. Nature Communications, 15(1), 6617. https://doi.org/10.1038/s41467-024-50394-x
+
 
 ## Contributors
 
